@@ -1,0 +1,40 @@
+policy:
+  - name: approved_licenses
+    type: whitelist
+    rules:
+      - field: license
+        values: [NOASSERTION, MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, Zlib, PSF-2.0, CC0-1.0, MPL-2.0, BSL-1.0, IJG, non-standard, LGPL, EPL-2.0, MS-PL, Microsoft .NET Framework Redistributable EULA]
+    action: fail
+
+  - name: dangerous_licenses
+    type: blacklist
+    rules:
+      - field: license
+        values: [NOASSERTION, LGPL, EPL-2.0]
+    action: warn
+
+  - name: required_metadata_sbom
+    type: required
+    rules:
+      - field: sbom_timestamp
+      - field: sbom_author
+      - field: sbom_supplier
+      - field: sbom_lifecycle
+      - field: sbom_pc
+    action: fail
+
+  - name: required_metadata_components
+    type: required
+    rules:
+      - field: sbom_timestamp
+      - field: sbom_author
+      - field: sbom_supplier
+      - field: sbom_lifecycle
+      - field: sbom_pc
+      - field: name
+      - field: supplier
+      - field: version
+      - field: license
+      - field: checksum
+      - field: type
+    action: fail

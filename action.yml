@@ -1,0 +1,50 @@
+name: 'SBOM validation'
+description: 'Validates an SBOM by CPR-specific rules'
+
+inputs:
+  sbom:
+    description: 'Name of the SBOM file to be created'
+    required: true
+  policies:
+    description: 'Name of the SBOM policies file. A company default file is used if not defined.'
+    default: '${{ github.workspace }}/sbom_validation/sbom_policies.yml'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get the SBOM enrichment tool
+      uses: actions/checkout@v7
+      with:
+        repository: CommonplaceRobotics/SW_Validate_SBOM
+        path: sbom_validation
+        sparse-checkout: |
+          sbom_policies.yml
+  
+    - uses: actions/setup-go@v7
+
+    - name: Install SBOM QA tool
+      shell: bash
+      run: go install github.com/interlynk-io/sbomqs@latest
+
+    # Checks compliance with the latest version of BSI TR-03183-2
+    - name: Check CRA compliance
+      shell: bash
+      run: sbomqs compliance --bsi-v2 --color ${{ inputs.sbom }}
+
+    # List licenses for manual review
+    - name: List component licenses
+      shell: bash
+      run: sbomqs list --feature comp_with_declared_license --show "${{ inputs.sbom }}"
+
+    # Validate SBOM policies
+    - name: Check SBOM policies
+      shell: bash
+      run: |
+        if sbomqs policy -f "${{ inputs.policies }}" "${{ inputs.sbom }}" -o json | jq '.[].overall_result' | grep -i "fail"; then
+          sbomqs policy -f "${{ inputs.policies }}" "${{ inputs.sbom }}" -o table
+          echo SBOM policy check failed
+          exit 1
+        else
+          sbomqs policy -f "${{ inputs.policies }}" "${{ inputs.sbom }}"
+        fi
